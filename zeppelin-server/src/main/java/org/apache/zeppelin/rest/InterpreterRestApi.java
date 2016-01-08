@@ -37,11 +37,15 @@ import org.apache.zeppelin.interpreter.*;
 import org.apache.zeppelin.interpreter.Interpreter.RegisteredInterpreter;
 import org.apache.zeppelin.rest.message.NewInterpreterSettingRequest;
 import org.apache.zeppelin.rest.message.UpdateInterpreterSettingRequest;
+import org.apache.zeppelin.rest.message.NewInterpreterLoadRequest;
 import org.apache.zeppelin.server.JsonResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 
 /**
  * Interpreter Rest API
@@ -153,7 +157,60 @@ public class InterpreterRestApi {
     }
     return new JsonResponse(Status.OK, "", setting).build();
   }
-
+  
+  /**
+   * Add new Load interpreter
+   * @param message
+   * @return
+   * @throws IOException
+   * @throws InterpreterException
+   */
+  @POST
+  @Path("load/{groupName}/{interpreterName}")
+  public Response newLoad(String message, @PathParam("groupName") String groupName, 
+      @PathParam("interpreterName") String interpreterName) 
+      throws InterpreterException, IOException {
+    NewInterpreterLoadRequest request = gson.fromJson(message,
+        NewInterpreterLoadRequest.class);
+    JsonObject jsonRepository = new JsonParser().parse(message).
+        getAsJsonObject().getAsJsonObject("repository");
+    if (request.getArtifact() == null) {
+      return new JsonResponse(Status.INTERNAL_SERVER_ERROR, "500 Server Error", message).build();
+    }
+    if (jsonRepository == null) {
+      logger.info("Loaded without Repository. [groupName: {}, interpreterName: {}]",
+        groupName + interpreterName);
+      //returnCheck = interpreterFactory.loadDynamicInterpreter(groupName, 
+      //    interpreterName);
+      return new JsonResponse(Status.CREATED, "200 OK", message).build();
+    }
+    boolean returnCheck = false;
+    //returnCheck = interpreterFactory.unloadDynamicInterpreter(groupName, 
+    //    interpreterName);
+    if (returnCheck == true) {
+      logger.info("Loaded Interpreter. [groupName : {}, interpreterName: {}]",
+        groupName , interpreterName);
+      return new JsonResponse(Status.CREATED, "200 OK", message).build();
+    }
+    logger.info("Interpreter Rest API Load Fail. [groupName : {}, interpreterName : {}]", 
+        groupName, interpreterName);
+    return new JsonResponse(Status.INTERNAL_SERVER_ERROR, "500 Server Error", message).build();
+  }
+  
+  @DELETE
+  @Path("unload/{groupName}/{interpreterName}")
+  public Response unLoad(String message, @PathParam("groupName") String groupName,
+      @PathParam("interpreterName") String interpreterName) throws IOException {
+    boolean returnCheck = false;
+    //returnCheck = interpreterFactory.unloadDynamicInterpreter(groupName, 
+    //    interpreterName);
+    if (returnCheck == true) {
+      logger.info("unload Class for " + groupName + "/" + interpreterName);
+      return new JsonResponse(Status.CREATED, "", message).build();
+    }
+    return new JsonResponse(Status.INTERNAL_SERVER_ERROR, "", message).build();    
+  }
+  
   /**
    * List all available interpreters by group
    */
